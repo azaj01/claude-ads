@@ -10,7 +10,7 @@ Usage:
 import argparse
 import sys
 
-from url_utils import validate_url
+from url_utils import sanitize_error, validate_url
 
 try:
     import requests
@@ -52,7 +52,7 @@ def fetch_page(
     try:
         url = validate_url(url)
     except ValueError as e:
-        result["error"] = str(e)
+        result["error"] = sanitize_error(e)
         return result
 
     try:
@@ -79,11 +79,11 @@ def fetch_page(
     except requests.exceptions.TooManyRedirects:
         result["error"] = f"Too many redirects (max {max_redirects})"
     except requests.exceptions.SSLError as e:
-        result["error"] = f"SSL error: {e}"
+        result["error"] = f"SSL error: {sanitize_error(e)}"
     except requests.exceptions.ConnectionError as e:
-        result["error"] = f"Connection error: {e}"
+        result["error"] = f"Connection error: {sanitize_error(e)}"
     except requests.exceptions.RequestException as e:
-        result["error"] = f"Request failed: {e}"
+        result["error"] = f"Request failed: {sanitize_error(e)}"
 
     return result
 

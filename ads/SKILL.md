@@ -10,7 +10,7 @@ tested_with: claude-code v2.x
 # Ads: Multi-Platform Paid Advertising Audit & Optimization
 
 Comprehensive ad account analysis across all major platforms (Google, Meta,
-LinkedIn, TikTok, Microsoft, Apple, Amazon). Orchestrates 20 specialized
+LinkedIn, TikTok, Microsoft, Apple, Amazon). Orchestrates 22 specialized
 sub-skills and 10 agents (6 audit + 4 creative).
 
 ## Quick Reference

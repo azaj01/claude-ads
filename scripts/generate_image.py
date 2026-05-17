@@ -352,7 +352,9 @@ def generate_replicate(prompt: str, width: int, height: int, api_key: str, model
         _validate_url(url)
     except ValueError as ve:
         raise RuntimeError(f"Replicate URL failed SSRF validation: {ve}") from ve
-    resp = requests.get(url, timeout=120)
+    # allow_redirects=False — the SSRF check above only validated the original
+    # URL. A redirect target could be a private IP; refuse to follow at all.
+    resp = requests.get(url, timeout=120, allow_redirects=False)
     resp.raise_for_status()
     return resp.content
 

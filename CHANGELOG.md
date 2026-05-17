@@ -5,6 +5,131 @@ All notable changes to claude-ads are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-05-17
+
+Wave 2 of the 90-day "category leader" plan. Ships the cross-runtime install
+matrix, the trust-moat eval harness, deep platform rewrites for the AI Max
+and Andromeda eras, and three new sub-skills covering attribution, server-
+side tracking, and Amazon retail media.
+
+### Added
+
+- **Cross-runtime install matrix** — `install.sh` / `install.ps1` now accept
+  `--target={claude,codex,cursor,windsurf,gemini,goose}` with strict whitelist
+  validation. Per-host path tables in a single source of truth; pip install
+  gated to Claude Code + Codex CLI only. Optional `--skill-dir` / `--agent-dir`
+  overrides validated against `; & | $ ( ) < >` backtick, leading dashes, `..`
+  traversal, and UNC-style paths. `uninstall.sh` / `uninstall.ps1` match.
+- **Pytest eval harness** in `tests/` — 41 tests covering:
+  - **Routing snapshots** (3 tests): every documented trigger phrase routes to
+    its expected sub-skill via `evals/creative-evals.json`.
+  - **Check-catalog coverage** (4 tests): bidirectional verification between
+    `tests/fixtures/check-catalog.yaml` (209 IDs across G/M/L/T/MS) and every
+    audit reference file under `ads/references/`. No orphan IDs, no untracked
+    rows, total count ≥ 209 baseline.
+  - **Scoring math** (6 tests): re-implements the weighted-score algorithm
+    from `scoring-system.md` and asserts determinism across 10 runs, correct
+    severity weighting, NA exclusion.
+  - **SSRF regression** (28 tests): 14 IPv4/IPv6 private/internal blocklist
+    cases (including `::/128` from v1.6.0), 5 non-HTTP scheme blocks, DNS
+    fail-closed, valid public URL passthrough, plus 6 credential-redaction
+    sanitize_error cases and benign-message passthrough.
+- **`tests/fixtures/check-catalog.yaml`** — canonical 209-check catalog with
+  severity multipliers and result-points table, derived directly from the
+  reference files via grep.
+- **`requirements-dev.txt`** — pytest ^8 + pyyaml ^6 (test-only, production
+  users never need these).
+- **CI integration** (`.github/workflows/ci.yml`) — new "Run eval harness
+  (pytest)" step between install and pip-audit. Tests fail the build on any
+  regression.
+- **Outbound Network Destinations table** in `SECURITY.md` — every endpoint
+  reachable by every script is now documented with its gating mechanism.
+- **3 new sub-skills**:
+  - `ads-attribution`: cross-platform attribution audit covering iOS
+    AdAttributionKit (view-through 24h post-impression, WWDC 2025 configurable
+    windows, ATT opt-in monitoring), web (GA4 attribution model, Google Ads
+    attribution, cross-channel auto-tagging), Consent Mode V2 Advanced
+    enforcement, server-side stitching, MMP health, cross-device matching.
+  - `ads-server-side-tracking`: server-side pipeline audit covering sGTM
+    (custom domain, Conversion Linker), Meta CAPI / CAPI Gateway, event_id
+    deduplication, ≥80% server / client hit ratio, 6-event pixel debug
+    walkthrough, lowercased + trimmed SHA-256 PII hashing discipline.
+  - `ads-amazon`: Amazon Ads audit covering Sponsored Products (auto vs
+    manual + search-term harvesting), Sponsored Brands (HSA + SB Video),
+    Sponsored Display (audience vs contextual), ACOS / TACOS targets per
+    contribution margin, bid + budget management, Brand Analytics integration.
+- **Multi-host README** — hero reframed for Agent Skills compatibility,
+  cross-host install matrix table with per-host path mapping, experimental-
+  target warning, host-support badge row (Claude verified, others
+  experimental), new "Eval Harness" Features section.
+- **Updated repo About-field text** and **Topics list** in
+  `research/distribution-prep-v1.7.0.md` to reflect Wave 2 changes.
+
+### Changed
+
+- **`ads-google` SKILL.md** — AI Max for Search section expanded with the
+  `ai_max_setting.enable_ai_max` field (Google Ads API v21+), AI Brief audit
+  (business name, value prop, audience, forbidden topics, disclaimers), text
+  customization rules, Final URL Expansion (FUE) controls, brand exclusions,
+  text disclaimers (rolling out May 2026+). New **DSA Migration Pre-Flight
+  Checklist** section (11 items) for the September 2026 auto-migration of
+  DSA / ACA / campaign-level broad-match into AI Max.
+- **`ads-meta` SKILL.md** — Andromeda section expanded to **Andromeda + GEM +
+  Lattice (2026)** covering all three stack components and why creative is
+  now mechanical targeting. New **creative-as-targeting scoring rubric**
+  (5 axes, 0-10 total). New **Entity-ID Clustering Predictor** section
+  (promoted from Wave 3) with 5 predictor heuristics and a pre-launch
+  `creative-cluster-risk.md` deliverable. New **MAPI v25 ASC/AAC
+  Deprecation Detector** section. New **ASC defaults for Sales/Leads/App**
+  section.
+- **Orchestrator routing-table** in `ads/SKILL.md` — 3 new commands
+  (`/ads amazon`, `/ads attribution`, `/ads tracking`), sub-skill count
+  refreshed 17 → 22, Community Footer "When to show" extended with new
+  commands, stale reference-file annotations fixed (google 74→80, meta
+  46→50, linkedin 25→27, tiktok 25→28, microsoft 20→24 — now matches the
+  catalog).
+- **`scripts/url_utils.py`** — `sanitize_error()` canonicalized as the single
+  source of truth for exception-message redaction. `analyze_landing.py`,
+  `capture_screenshot.py`, and `fetch_page.py` all import and apply it at
+  every broad-except site.
+- **`scripts/generate_image.py`** — Replicate result URL is now revalidated
+  against the SSRF blocklist before fetching, and `requests.get` runs with
+  `allow_redirects=False` so a redirect to a private IP cannot bypass the
+  gate.
+- **`scripts/fetch_page.py`** — all `RequestException` / `SSLError` /
+  `ConnectionError` interpolations now run through `sanitize_error`.
+- **`uninstall.sh` / `uninstall.ps1`** — glob-based discovery
+  (`${SKILL_BASE}/ads-*/`) instead of hardcoded sub-skill list. New
+  sub-skills no longer require uninstaller updates.
+
+### Security
+
+- **v1.6.0 baseline (92/100) lifted to 94/100** in the Wave 2 cybersecurity
+  re-audit. Zero new HIGH/CRITICAL findings.
+- All 6 install-matrix injection attack inputs verified blocked by
+  `validate_install_path()` / case-statement whitelist (semicolon command
+  injection, shell metacharacters, parent-traversal `..`, leading dashes,
+  UNC paths, unknown target keys).
+- Glob-discovery in uninstaller cannot escape `${SKILL_BASE}` since
+  `SKILL_BASE` is sourced only from the whitelisted target mapping; no
+  `--skill-dir` override on the uninstall side.
+- Defense-in-depth Replicate URL revalidation closes a hypothetical upstream-
+  compromise vector even though Replicate is a trusted vendor.
+
+### Notes
+
+- **Wave 3 backlog**: `ads-walmart`, `ads-ctv` + `audit-ctv`,
+  `ads-retail-media` orchestrator, `ads-pmax-feed`, `ads-mmm`,
+  `ads-incrementality`, creative pipeline v2 (Veo 3.1, Runway Gen-4.5, Kling
+  3.0 Omni, Seedance 2.0), 4 prioritized industry templates (DTC subscription,
+  Marketplace seller, Auto dealer, EdTech), compliance attestation pack,
+  routing-table two-tier refactor (triggered when sub-skill count exceeds ~25;
+  we're at 22), pair `audit-amazon` / `audit-attribution` / `audit-server-side`
+  agents so `/ads audit` can dispatch the Wave 2 sub-skills in parallel.
+- **Carry-forward security backlog**: a 2-MED list and a 4-LOW list from the
+  Wave 2 audit are captured in the plan file. Both will be addressed alongside
+  the Wave 3 sub-skill agents and CTV creative pipeline.
+
 ## [1.6.0] - 2026-05-17
 
 ### Added

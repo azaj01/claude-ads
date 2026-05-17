@@ -244,13 +244,15 @@ Comprehensive coverage across all platforms with weighted severity scoring:
 
 | Platform | Checks | Key Areas |
 |----------|--------|-----------|
-| Google Ads | 80 | Search, PMax, AI Max, Demand Gen, CTV, YouTube |
-| Meta Ads | 50 | Pixel/CAPI, Andromeda creative diversity, Structure, Audience |
+| Google Ads | 80 | Search, PMax, AI Max (`ai_max_setting`, AI Brief, FUE), Demand Gen, CTV, YouTube |
+| Meta Ads | 50 | Pixel/CAPI, Andromeda + GEM + Lattice, Entity-ID clustering, ASC/AAC, Structure, Audience |
 | LinkedIn Ads | 27 | B2B targeting, TLA, Lead Gen, CRM integration |
-| TikTok Ads | 28 | Creative-first, Smart+, GMV Max, Search Ads, Events API |
+| TikTok Ads | 28 | Creative-first, Smart+, GMV Max, Search Ads, Events API (post-USDS) |
 | Microsoft Ads | 24 | Google import safety, Copilot, CTV, LinkedIn targeting, video |
 | Apple Ads | 35+ | Campaign structure, CPPs, Maximize Conversions, AdAttributionKit |
+| Amazon Ads | 30+ | Sponsored Products / Brands / Display, ACOS / TACOS, search-term harvesting |
 | Cross-platform | 3 | Privacy infrastructure, creative diversity, refresh cadence |
+| Attribution + Server-side | 25+ | AdAttributionKit, GA4, Consent Mode V2, sGTM, CAPI Gateway, hash quality |
 
 <p align="center">
   <img src="assets/diagrams/15-platform-grid.svg" alt="Platform Coverage Grid" width="100%">
@@ -274,6 +276,16 @@ Weighted scoring algorithm with severity multipliers:
 <p align="center">
   <img src="assets/diagrams/13-scoring-algorithm.svg" alt="Scoring Algorithm" width="100%">
 </p>
+
+### Eval Harness (Wave 2)
+41-test pytest suite ships in `tests/` and runs in CI on every commit:
+
+- **Routing snapshots** — every documented trigger phrase routes to its expected sub-skill (catches description regressions)
+- **Check-catalog coverage** — bidirectional check between `tests/fixtures/check-catalog.yaml` and every audit reference file; no orphan IDs, no untracked rows
+- **Scoring math** — re-implements the weighted-score algorithm; asserts determinism across 10 runs and correct severity weighting
+- **SSRF regression suite** — 27 IPv4/IPv6 blocklist cases, non-HTTP scheme blocks, DNS fail-closed, credential redaction
+
+No competing paid-ads skill ships a regression suite. This is the moat that makes claude-ads auditable end-to-end.
 
 ### Industry Detection
 Auto-detects business type from ad account signals (product feeds, conversion events, platform mix, targeting patterns) and loads industry-specific benchmarks and templates.
@@ -319,9 +331,10 @@ Claude Ads runs entirely on your local machine via Claude Code. No ad account da
 ```
 ~/.claude/skills/ads/              # Main orchestrator
 ~/.claude/skills/ads/references/   # 25 RAG reference files
-~/.claude/skills/ads-*/            # 19 sub-skills (17 original + ads-math + ads-test)
+~/.claude/skills/ads-*/            # 22 sub-skills (incl. ads-math, ads-test, ads-amazon, ads-attribution, ads-server-side-tracking)
 ~/.claude/skills/ads-plan/assets/  # 12 industry templates
 ~/.claude/agents/                  # 10 agents (6 audit + 4 creative)
+~/.claude/skills/ads/tests/        # 41-test pytest eval harness (Wave 2)
 ```
 
 ### How It Works
